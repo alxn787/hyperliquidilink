@@ -94,41 +94,51 @@ Headers sent to your API:
 
 Your server can recover the signer and authorize the request.
 
-### 5) Hyperliquid Staking Link
-
-Script: `index.ts`
+### 5) Hyperliquid Staking Link (Automated)
 
 Automates Hyperliquid account linking by signing EIP-712 `LinkStakingUser` actions and submitting them.
 
-Environment variables:
-- `USER_ADDRESS` (required): linked account address (lowercase)
-- `IS_FINALIZE` (required): `true` or `false` (bidirectional link step)
-- `HYPERLIQUID_TESTNET` (optional, default `true`): use testnet
-- `NONCE` (optional): custom nonce; defaults to current timestamp
+#### Setup
 
-Run (step 1 of bidirectional link):
+Copy `env.example` to `.env` and configure:
 
 ```bash
-USER_ADDRESS=0xab59FAAeffEdCFa9F02D4138d4e46AF689923664 IS_FINALIZE=false npm run link
+# Trading account
+TRADING_PRIVATE_KEY=your_trading_account_private_key
+TRADING_USER_ADDRESS=staking_account_to_link_to
+
+# Staking account
+STAKING_PRIVATE_KEY=your_staking_account_private_key
+STAKING_USER_ADDRESS=trading_account_to_link_to
+
+HYPERLIQUID_TESTNET=true
 ```
 
-Run (step 2 - finalize):
+#### Bidirectional Linking
 
+The linking process requires **two signatures** (one from each account).
+
+**Step 1 - Trading account initiates:**
 ```bash
-USER_ADDRESS=0xab59FAAeffEdCFa9F02D4138d4e46AF689923664 IS_FINALIZE=true npm run link
+npm run link:trading
 ```
 
-Use with a fixed nonce for both steps:
-
+**Step 2 - Staking account finalizes (use same nonce):**
 ```bash
-NONCE=1761905486803 IS_FINALIZE=false npm run link
-NONCE=1761905486803 IS_FINALIZE=true npm run link
+NONCE=1761995511314 npm run link:staking
 ```
 
-The script signs with EIP-712 `HyperliquidTransaction:LinkStakingUser` and posts to the Hyperliquid API.
+Both scripts sign with EIP-712 `HyperliquidTransaction:LinkStakingUser` and post to the Hyperliquid API. The staking script automatically sets `isFinalize=true`.
+
+**Quick test (generate fresh nonce):**
+```bash
+# Step 1
+npm run link:trading
+# Copy the nonce from output, then:
+NONCE=<copied_nonce> npm run link:staking
+```
 
 ### Notes
 - EIP-1559 gas values are conservative defaults; tune for your network.
 - Works with any RPC that supports `eth_sendRawTransaction` and `eth_feeHistory`.
 - The message signing matches MetaMask flows: `personal_sign` and `eth_signTypedData_v4` (EIP-712).
-# hyperliquidilink
