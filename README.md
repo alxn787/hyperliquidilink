@@ -1,0 +1,134 @@
+## Ethereum signer (MetaMask-like) in TypeScript (Node.js)
+
+This project lets you sign Ethereum transactions and messages (like MetaMask) using TypeScript/Node, then optionally send them or call an API with the signature.
+
+### 1) Install
+
+```bash
+# From repo root
+npm install
+```
+
+### 2) Configure environment
+
+Copy `env.example` to `.env` and fill in the values:
+
+```bash
+cp env.example .env
+```
+
+Required:
+- `ETH_RPC_URL`: Your RPC URL (Infura/Alchemy/Ankr or self-hosted)
+- `CHAIN_ID`: Network chain ID (1 mainnet, 8453 Base, 137 Polygon, 11155111 Sepolia)
+- `PRIVATE_KEY`: The account private key used for signing
+
+Optional per script are documented below.
+
+> Keep your private key secure. Do not commit `.env`.
+
+### 3) Send an EIP-1559 transaction
+
+Script: `scripts/sign_and_send_tx.ts`
+
+Environment variables used:
+- `TO_ADDRESS` (required): recipient address
+- `AMOUNT_ETH` (required): ether amount to send (e.g., `0.001`)
+- `MAX_PRIORITY_FEE_GWEI` (optional, default `2`)
+- `MAX_FEE_GWEI` (optional, default `60`)
+- `WAIT_FOR_RECEIPT` (optional, default `true`)
+
+Run:
+
+```bash
+npm run tx
+```
+
+Output includes the transaction hash and receipt (if waiting).
+
+### 4) Sign message and call an API
+
+Script: `scripts/sign_message_and_call_api.ts`
+
+Environment variables:
+- `TARGET_API_URL` (required): API endpoint to POST to
+- `SIGN_MODE` (optional): `personal` (default) or `typed`
+- `MESSAGE` (used when `SIGN_MODE=personal`)
+- `TYPED_DATA_JSON` (used when `SIGN_MODE=typed`, must be valid EIP-712 JSON)
+- `API_PAYLOAD_JSON` (optional): JSON string payload to send
+
+Run (personal_sign):
+
+```bash
+SIGN_MODE=personal MESSAGE="Sign this to auth" npm run sign
+```
+
+Run (EIP-712 typed):
+
+```bash
+SIGN_MODE=typed TYPED_DATA_JSON='{
+  "types": {
+    "EIP712Domain": [
+      {"name":"name","type":"string"},
+      {"name":"version","type":"string"},
+      {"name":"chainId","type":"uint256"}
+    ],
+    "Mail": [
+      {"name":"from","type":"address"},
+      {"name":"to","type":"address"},
+      {"name":"contents","type":"string"}
+    ]
+  },
+  "primaryType": "Mail",
+  "domain": {"name":"MyDapp","version":"1","chainId":1},
+  "message": {
+    "from":"0x0000000000000000000000000000000000000001",
+    "to":"0x0000000000000000000000000000000000000002",
+    "contents":"Hello"
+  }
+}' npm run sign
+```
+
+Headers sent to your API:
+- `X-Eth-Address`: signer address
+- `X-Eth-Signature`: hex signature (`0x…`)
+
+Your server can recover the signer and authorize the request.
+
+### 5) Hyperliquid Staking Link
+
+Script: `index.ts`
+
+Automates Hyperliquid account linking by signing EIP-712 `LinkStakingUser` actions and submitting them.
+
+Environment variables:
+- `USER_ADDRESS` (required): linked account address (lowercase)
+- `IS_FINALIZE` (required): `true` or `false` (bidirectional link step)
+- `HYPERLIQUID_TESTNET` (optional, default `true`): use testnet
+- `NONCE` (optional): custom nonce; defaults to current timestamp
+
+Run (step 1 of bidirectional link):
+
+```bash
+USER_ADDRESS=0xab59FAAeffEdCFa9F02D4138d4e46AF689923664 IS_FINALIZE=false npm run link
+```
+
+Run (step 2 - finalize):
+
+```bash
+USER_ADDRESS=0xab59FAAeffEdCFa9F02D4138d4e46AF689923664 IS_FINALIZE=true npm run link
+```
+
+Use with a fixed nonce for both steps:
+
+```bash
+NONCE=1761905486803 IS_FINALIZE=false npm run link
+NONCE=1761905486803 IS_FINALIZE=true npm run link
+```
+
+The script signs with EIP-712 `HyperliquidTransaction:LinkStakingUser` and posts to the Hyperliquid API.
+
+### Notes
+- EIP-1559 gas values are conservative defaults; tune for your network.
+- Works with any RPC that supports `eth_sendRawTransaction` and `eth_feeHistory`.
+- The message signing matches MetaMask flows: `personal_sign` and `eth_signTypedData_v4` (EIP-712).
+# hyperliquidilink
