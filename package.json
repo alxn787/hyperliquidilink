@@ -1,0 +1,23 @@
+{
+  "name": "linkscript-eth-signer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tx": "tsx scripts/sign_and_send_tx.ts",
+    "sign": "tsx scripts/sign_message_and_call_api.ts",
+    "link": "tsx index.ts",
+    "link:trading": "tsx scripts/link_trading.ts",
+    "link:staking": "tsx scripts/link_staking.ts"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}
